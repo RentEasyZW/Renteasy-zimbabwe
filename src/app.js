@@ -1,5 +1,31 @@
 const { useState, useEffect, useRef } = React;
 
+// ─── IMAGEKIT CONFIG ──────────────────────────────────────────────────────────
+const IMAGEKIT_PUBLIC_KEY = "public_oBEPFRNgs"; // ← replace with your full key
+const IMAGEKIT_URL_ENDPOINT = "https://ik.imagekit.io/6hlxcszeo";
+
+// ─── FIRST-TIME WAIVER ────────────────────────────────────────────────────────
+const FIRST_TIME_KEY = "renteasy_has_unlocked";
+const isFirstTimeUser = () => !localStorage.getItem(FIRST_TIME_KEY);
+const markUserAsReturning = () => localStorage.setItem(FIRST_TIME_KEY, "true");
+
+// ─── IMAGE UPLOAD ─────────────────────────────────────────────────────────────
+async function uploadToImageKit(file) {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("fileName", `renteasy_${Date.now()}_${file.name}`);
+    formData.append("publicKey", IMAGEKIT_PUBLIC_KEY);
+    const res = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+      method: "POST", body: formData,
+    });
+    const data = await res.json();
+    return data.url || URL.createObjectURL(file);
+  } catch {
+    return URL.createObjectURL(file);
+  }
+}
+
 // ─── DATA ────────────────────────────────────────────────────────────────────
 
 const PROPERTIES = [
@@ -9,6 +35,7 @@ const PROPERTIES = [
     description: "Spacious modern home with garden, parking and borehole. Quiet neighbourhood close to schools and shops. Recently renovated kitchen and bathrooms.",
     landlord: { name: "Mr. Chikwanda", initials: "MC", phone: "+263 77 234 5678", email: "chikwanda@gmail.com", rating: 4.8, properties: 3 },
     emoji: "🏡", available: true, viewingFee: 10,
+    photos: [],
     amenities: ["Borehole", "Garden", "2x Parking", "Security Gate", "Prepaid ZESA"],
     posted: "2 days ago",
   },
@@ -18,6 +45,7 @@ const PROPERTIES = [
     description: "Well-maintained flat on 2nd floor. ZESA prepaid, city water, communal garden. Walking distance to Avondale shops and restaurants.",
     landlord: { name: "Mrs. Moyo", initials: "MM", phone: "+263 71 345 6789", email: "moyorent@gmail.com", rating: 4.5, properties: 5 },
     emoji: "🏠", available: true, viewingFee: 5,
+    photos: [],
     amenities: ["City Water", "Prepaid ZESA", "Parking", "Security Guard"],
     posted: "5 days ago",
   },
@@ -27,6 +55,7 @@ const PROPERTIES = [
     description: "Luxury executive home with pool, double garage, staff quarters and fully fitted kitchen. Ideal for expats and corporate tenants.",
     landlord: { name: "Tatenda Properties", initials: "TP", phone: "+263 77 456 7890", email: "tatenda.props@gmail.com", rating: 5.0, properties: 8 },
     emoji: "🏰", available: true, viewingFee: 20,
+    photos: [],
     amenities: ["Pool", "Double Garage", "Staff Quarters", "Alarm System", "Borehole", "Electric Fence"],
     posted: "1 day ago",
   },
@@ -36,6 +65,7 @@ const PROPERTIES = [
     description: "Compact and affordable studio apartment. Perfect for a single professional. Secure complex with 24/7 guard and communal laundry.",
     landlord: { name: "Mr. Ncube", initials: "MN", phone: "+263 73 567 8901", email: "ncube.rentals@gmail.com", rating: 4.2, properties: 2 },
     emoji: "🏢", available: true, viewingFee: 5,
+    photos: [],
     amenities: ["24/7 Security", "Parking", "Prepaid ZESA", "Communal Laundry"],
     posted: "1 week ago",
   },
@@ -45,6 +75,7 @@ const PROPERTIES = [
     description: "Beautiful townhouse in a secure complex. Small garden, fitted kitchen, tiled throughout. Great for a family.",
     landlord: { name: "Grace Rentals", initials: "GR", phone: "+263 77 678 9012", email: "grace.rentals@gmail.com", rating: 4.6, properties: 4 },
     emoji: "🏘️", available: false, viewingFee: 8,
+    photos: [],
     amenities: ["Garden", "Borehole", "Electric Fence", "Parking"],
     posted: "3 days ago",
   },
@@ -54,6 +85,7 @@ const PROPERTIES = [
     description: "Affordable and well-located house near Bulawayo CBD. Ideal for a small family. Good road access and quiet street.",
     landlord: { name: "Mr. Dube", initials: "MD", phone: "+263 71 789 0123", email: "dube.rentals@gmail.com", rating: 4.3, properties: 1 },
     emoji: "🏠", available: true, viewingFee: 5,
+    photos: [],
     amenities: ["City Water", "Parking", "Prepaid ZESA"],
     posted: "4 days ago",
   },
@@ -63,6 +95,7 @@ const PROPERTIES = [
     description: "Fully furnished flat ready to move in. Includes beds, sofas, fridge and washing machine. Ideal for professionals relocating.",
     landlord: { name: "Sunrise Properties", initials: "SP", phone: "+263 77 890 1234", email: "sunrise.zw@gmail.com", rating: 4.7, properties: 6 },
     emoji: "🛋️", available: true, viewingFee: 8,
+    photos: [],
     amenities: ["Furnished", "Borehole", "DSTV Point", "Parking", "Security"],
     posted: "Today",
   },
@@ -72,10 +105,119 @@ const PROPERTIES = [
     description: "Spacious family home in quiet Hillside neighbourhood. Large yard, borehole, and recently painted throughout.",
     landlord: { name: "Mrs. Ndlovu", initials: "MN", phone: "+263 71 901 2345", email: "ndlovu.props@gmail.com", rating: 4.4, properties: 3 },
     emoji: "🏡", available: true, viewingFee: 8,
+    photos: [],
     amenities: ["Borehole", "Large Yard", "Parking", "Prepaid ZESA"],
     posted: "6 days ago",
   },
 ];
+
+// ─── PHOTO UPLOADER COMPONENT ─────────────────────────────────────────────────
+function PhotoUploader({ photos, setPhotos }) {
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef();
+
+  const handleFiles = async (files) => {
+    const fileArr = Array.from(files).slice(0, 8 - photos.length);
+    if (!fileArr.length) return;
+    setUploading(true);
+    const urls = await Promise.all(fileArr.map(uploadToImageKit));
+    setPhotos(prev => [...prev, ...urls]);
+    setUploading(false);
+  };
+
+  return (
+    <div>
+      <label style={{ fontSize: 12, color: "#8899AA", display: "block", marginBottom: 8 }}>📸 Property Photos (up to 8)</label>
+      <div
+        onClick={() => inputRef.current.click()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+        style={{
+          border: `2px dashed ${dragOver ? "#F4A228" : "#1E3A5F"}`,
+          borderRadius: 12, padding: "24px 16px", textAlign: "center",
+          cursor: "pointer", background: dragOver ? "rgba(244,162,40,0.05)" : "#081422",
+          transition: "all 0.2s"
+        }}>
+        <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+          onChange={e => handleFiles(e.target.files)} />
+        <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>
+        <p style={{ color: "#8899AA", fontSize: 13 }}>
+          Drag & drop photos or <span style={{ color: "#F4A228", fontWeight: 600 }}>browse</span>
+        </p>
+        <p style={{ color: "#4a6070", fontSize: 11, marginTop: 4 }}>JPG, PNG · Max 8 photos</p>
+      </div>
+
+      {uploading && (
+        <div style={{ marginTop: 10, fontSize: 13, color: "#2DD4BF", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #1E3A5F", borderTopColor: "#2DD4BF", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+          Uploading photos…
+        </div>
+      )}
+
+      {photos.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: 8, marginTop: 12 }}>
+          {photos.map((url, i) => (
+            <div key={i} style={{ position: "relative", aspectRatio: "1", borderRadius: 8, overflow: "hidden" }}>
+              <img src={url} alt={`Photo ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <button onClick={() => setPhotos(p => p.filter((_, j) => j !== i))}
+                style={{ position: "absolute", top: 3, right: 3, background: "rgba(0,0,0,0.65)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PHOTO GALLERY / MODAL ────────────────────────────────────────────────────
+function PhotoGallery({ photos, emoji }) {
+  const [modalIdx, setModalIdx] = useState(null);
+
+  if (!photos || photos.length === 0) {
+    return (
+      <div style={{ background: "linear-gradient(135deg, #1a3a5c, #0f2a45)", height: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 90 }}>{emoji}</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div onClick={() => setModalIdx(0)} style={{ position: "relative", height: 200, cursor: "pointer", overflow: "hidden" }}>
+        <img src={photos[0]} alt="Property" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        {photos.length > 1 && (
+          <span style={{ position: "absolute", bottom: 10, right: 10, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 12, padding: "4px 10px", borderRadius: 20, fontWeight: 600 }}>
+            📷 {photos.length} photos
+          </span>
+        )}
+      </div>
+
+      {modalIdx !== null && (
+        <div onClick={() => setModalIdx(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ maxWidth: 680, width: "100%", background: "#112236", borderRadius: 16, overflow: "hidden" }}>
+            <img src={photos[modalIdx]} alt={`Photo ${modalIdx + 1}`}
+              style={{ width: "100%", maxHeight: 420, objectFit: "cover", display: "block" }} />
+            <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <button onClick={() => setModalIdx(i => Math.max(0, i - 1))} disabled={modalIdx === 0}
+                style={{ background: "none", border: "1.5px solid #1E3A5F", borderRadius: 8, padding: "8px 16px", color: "#F0F4F8", cursor: "pointer", fontWeight: 600 }}>← Prev</button>
+              <span style={{ color: "#8899AA", fontSize: 13 }}>{modalIdx + 1} / {photos.length}</span>
+              <button onClick={() => setModalIdx(i => Math.min(photos.length - 1, i + 1))} disabled={modalIdx === photos.length - 1}
+                style={{ background: "none", border: "1.5px solid #1E3A5F", borderRadius: 8, padding: "8px 16px", color: "#F0F4F8", cursor: "pointer", fontWeight: 600 }}>Next →</button>
+              <button onClick={() => setModalIdx(null)}
+                style={{ background: "#F4A228", color: "#0D1B2A", border: "none", borderRadius: 8, padding: "8px 20px", cursor: "pointer", fontWeight: 700 }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 
@@ -96,6 +238,8 @@ function App() {
   const [landlordListings, setLandlordListings] = useState([]);
   const [notification, setNotification] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [firstTime, setFirstTime] = useState(isFirstTimeUser());
+  const [newListingPhotos, setNewListingPhotos] = useState([]);
   const [newListing, setNewListing] = useState({
     title: "", location: "", city: "Harare", price: "", type: "House",
     bedrooms: "", bathrooms: "", description: "", amenities: "",
@@ -125,8 +269,14 @@ function App() {
 
   const handlePayViewing = () => {
     setPayModal(false);
+    if (firstTime) {
+      markUserAsReturning();
+      setFirstTime(false);
+      notify("🎉 First unlock is FREE! Landlord contact unlocked.");
+    } else {
+      notify("✅ Payment confirmed! Landlord contact unlocked.");
+    }
     setPaidProperties(prev => [...prev, selectedProperty.id]);
-    notify(`✅ Payment confirmed! Landlord contact unlocked.`);
   };
 
   const handleListingSubmit = () => {
@@ -136,10 +286,12 @@ function App() {
     setLandlordListings(prev => [...prev, {
       ...newListing, id: Date.now(), available: true,
       emoji: "🏠", posted: "Just now", viewingFee: 5,
+      photos: newListingPhotos,
       landlord: { name: "You", initials: "ME", phone: "Your phone", email: "Your email", rating: 5.0, properties: prev.length + 1 },
       amenities: newListing.amenities.split(",").map(a => a.trim()).filter(Boolean),
     }]);
     setListingModal(false);
+    setNewListingPhotos([]);
     setNewListing({ title: "", location: "", city: "Harare", price: "", type: "House", bedrooms: "", bathrooms: "", description: "", amenities: "" });
     notify("🎉 Property listed! Tenants can now find it.");
   };
@@ -151,13 +303,11 @@ function App() {
       <Nav page={page} role={role} goTo={goTo} saved={savedProperties.length}
         mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      {/* Hero */}
       <div style={{
         background: "linear-gradient(160deg, #0D1B2A 0%, #1a3a5c 45%, #0D1B2A 100%)",
         padding: "80px 24px 60px", textAlign: "center", borderBottom: "1px solid #1E3A5F",
         position: "relative", overflow: "hidden"
       }}>
-        {/* Decorative circles */}
         <div style={{ position: "absolute", top: -80, right: -80, width: 300, height: 300, borderRadius: "50%", background: "rgba(244,162,40,0.04)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: -60, left: -60, width: 200, height: 200, borderRadius: "50%", background: "rgba(45,212,191,0.04)", pointerEvents: "none" }} />
 
@@ -169,6 +319,12 @@ function App() {
           Connecting landlords and tenants across Zimbabwe. List for free. Pay a small fee to connect.
         </p>
 
+        {firstTime && (
+          <div className="fade-up-2" style={{ display: "inline-block", background: "linear-gradient(135deg, #F4A228, #f5c85a)", color: "#0D1B2A", borderRadius: 30, padding: "10px 24px", fontWeight: 700, fontSize: 14, marginBottom: 24 }}>
+            🎉 New here? Your first contact unlock is completely FREE!
+          </div>
+        )}
+
         <div className="fade-up-3" style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap", marginBottom: 56 }}>
           <button className="btn-primary" onClick={() => goTo("listings", "tenant")} style={{ fontSize: 16, padding: "14px 32px" }}>
             🔍 Browse Properties
@@ -178,7 +334,6 @@ function App() {
           </button>
         </div>
 
-        {/* Stats */}
         <div className="fade-up-4" style={{ display: "flex", justifyContent: "center", gap: "clamp(20px, 5vw, 56px)", flexWrap: "wrap" }}>
           {[["🏘️", "50+", "Properties"], ["👥", "200+", "Tenants"], ["⭐", "4.8", "Rating"], ["🇿🇼", "5", "Cities"]].map(([icon, val, label]) => (
             <div key={label} style={{ textAlign: "center" }}>
@@ -190,7 +345,6 @@ function App() {
         </div>
       </div>
 
-      {/* How it works */}
       <div style={{ padding: "60px 24px", maxWidth: 900, margin: "0 auto" }}>
         <h2 style={{ fontFamily: "'Playfair Display', serif", textAlign: "center", color: "#F0F4F8", fontSize: 30, marginBottom: 8 }}>How RentEasy Works</h2>
         <p style={{ textAlign: "center", color: "#8899AA", marginBottom: 40 }}>Simple. Transparent. Affordable.</p>
@@ -213,7 +367,6 @@ function App() {
         </div>
       </div>
 
-      {/* Featured */}
       <div style={{ padding: "0 24px 60px", maxWidth: 900, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h2 style={{ fontFamily: "'Playfair Display', serif", color: "#F0F4F8", fontSize: 26 }}>Featured Properties</h2>
@@ -242,10 +395,12 @@ function App() {
       <div style={{ padding: "32px 24px", maxWidth: 1100, margin: "0 auto" }}>
         <div className="fade-up" style={{ marginBottom: 24 }}>
           <h1 className="section-title">Browse Properties</h1>
-          <p style={{ color: "#8899AA", fontSize: 14 }}>Find your next home across Zimbabwe</p>
+          <p style={{ color: "#8899AA", fontSize: 14 }}>
+            Find your next home across Zimbabwe
+            {firstTime && <span style={{ marginLeft: 10, background: "linear-gradient(135deg,#F4A228,#f5c85a)", color: "#0D1B2A", borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 700 }}>🎉 First unlock FREE</span>}
+          </p>
         </div>
 
-        {/* Filters */}
         <div className="fade-up-1" style={{ background: "#112236", border: "1px solid #1E3A5F", borderRadius: 16, padding: "20px 24px", marginBottom: 28 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>
             <div style={{ gridColumn: "1 / -1" }}>
@@ -307,6 +462,8 @@ function App() {
   if (page === "detail" && selectedProperty) {
     const prop = selectedProperty;
     const unlocked = paidProperties.includes(prop.id);
+    const feeDisplay = firstTime ? "FREE" : `$${prop.viewingFee}`;
+
     return (
       <div style={{ minHeight: "100vh", background: "#0D1B2A" }}>
         {notification && <Notification data={notification} />}
@@ -316,9 +473,8 @@ function App() {
           <button className="btn-ghost" onClick={() => goTo("listings")} style={{ marginBottom: 22 }}>← Back to listings</button>
 
           <div className="fade-up" style={{ background: "#112236", border: "1px solid #1E3A5F", borderRadius: 20, overflow: "hidden" }}>
-            {/* Hero image area */}
-            <div style={{ background: "linear-gradient(135deg, #1a3a5c, #0f2a45)", height: 200, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-              <span style={{ fontSize: 90 }}>{prop.emoji}</span>
+            <div style={{ position: "relative" }}>
+              <PhotoGallery photos={prop.photos} emoji={prop.emoji} />
               <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
                 <span className="badge" style={{ background: prop.available ? "#22C55E" : "#6B7280", color: "#fff" }}>
                   {prop.available ? "✓ Available" : "Taken"}
@@ -340,9 +496,8 @@ function App() {
               </div>
               <p style={{ color: "#8899AA", marginBottom: 16 }}>📍 {prop.location} · Posted {prop.posted}</p>
 
-              {/* Stats row */}
               <div style={{ display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
-                {[["🛏", prop.bedrooms, "Beds"], ["🚿", prop.bathrooms, "Baths"], ["🏠", prop.type, "Type"], ["💳", `$${prop.viewingFee}`, "View Fee"]].map(([icon, val, lbl]) => (
+                {[["🛏", prop.bedrooms, "Beds"], ["🚿", prop.bathrooms, "Baths"], ["🏠", prop.type, "Type"], ["💳", feeDisplay, "View Fee"]].map(([icon, val, lbl]) => (
                   <div key={lbl} style={{ background: "#081422", borderRadius: 12, padding: "12px 16px", textAlign: "center", flex: 1, minWidth: 70 }}>
                     <div style={{ fontSize: 20 }}>{icon}</div>
                     <div style={{ fontWeight: 700, color: "#F4A228", fontSize: 16 }}>{val}</div>
@@ -353,13 +508,11 @@ function App() {
 
               <p style={{ color: "#CBD5E1", lineHeight: 1.75, marginBottom: 20 }}>{prop.description}</p>
 
-              {/* Amenities */}
               <div style={{ marginBottom: 24 }}>
                 <h3 style={{ color: "#2DD4BF", fontSize: 14, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>Amenities</h3>
                 <div>{prop.amenities.map(a => <span key={a} className="tag">✓ {a}</span>)}</div>
               </div>
 
-              {/* Landlord */}
               <div style={{ background: "#081422", border: "1px solid #1E3A5F", borderRadius: 14, padding: "18px 20px", marginBottom: 24 }}>
                 <h3 style={{ color: "#2DD4BF", fontSize: 13, fontWeight: 700, marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Listed By</h3>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
@@ -384,15 +537,21 @@ function App() {
                 </div>
               </div>
 
-              {/* CTA */}
               {prop.available && !unlocked && (
                 <div style={{ background: "linear-gradient(135deg, #1a3a5c, #112236)", border: "2px solid #F4A228", borderRadius: 16, padding: "24px", textAlign: "center" }}>
+                  {firstTime && (
+                    <div style={{ display: "inline-block", background: "linear-gradient(135deg,#F4A228,#f5c85a)", color: "#0D1B2A", borderRadius: 20, padding: "6px 18px", fontWeight: 700, fontSize: 13, marginBottom: 12 }}>
+                      🎉 Your first unlock is completely FREE!
+                    </div>
+                  )}
                   <h3 style={{ fontFamily: "'Playfair Display', serif", color: "#F4A228", fontSize: 20, marginBottom: 8 }}>Request a Viewing</h3>
                   <p style={{ color: "#8899AA", fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
-                    Pay a once-off viewing fee of <strong style={{ color: "#F4A228" }}>${prop.viewingFee} USD</strong> to instantly unlock the landlord's contact details and arrange a viewing.
+                    {firstTime
+                      ? "Unlock this landlord's contact details for free — no payment needed for your first unlock."
+                      : <>Pay a once-off viewing fee of <strong style={{ color: "#F4A228" }}>${prop.viewingFee} USD</strong> to instantly unlock the landlord's contact details.</>}
                   </p>
                   <button className="btn-primary" style={{ fontSize: 16, padding: "14px 36px" }} onClick={() => setPayModal(true)}>
-                    Pay ${prop.viewingFee} to Unlock Contact →
+                    {firstTime ? "🔓 Unlock Contact for FREE →" : `Pay $${prop.viewingFee} to Unlock Contact →`}
                   </button>
                   <p style={{ color: "#4a6070", fontSize: 11, marginTop: 10 }}>🔒 Secure · Instant unlock · EcoCash / InnBucks / Card</p>
                 </div>
@@ -418,53 +577,70 @@ function App() {
           </div>
         </div>
 
-        {/* Pay Modal */}
         {payModal && (
           <div className="modal-overlay">
             <div className="modal-box">
-              <h3 style={{ fontFamily: "'Playfair Display', serif", color: "#F4A228", fontSize: 22, marginBottom: 6 }}>💳 Viewing Fee Payment</h3>
-              <p style={{ color: "#8899AA", fontSize: 14, marginBottom: 20 }}>Unlock contact details for <strong style={{ color: "#F0F4F8" }}>{prop.title}</strong></p>
+              <h3 style={{ fontFamily: "'Playfair Display', serif", color: "#F4A228", fontSize: 22, marginBottom: 6 }}>
+                {firstTime ? "🎉 Free Unlock" : "💳 Viewing Fee Payment"}
+              </h3>
+              <p style={{ color: "#8899AA", fontSize: 14, marginBottom: 20 }}>
+                Unlock contact details for <strong style={{ color: "#F0F4F8" }}>{prop.title}</strong>
+              </p>
+
               <div style={{ background: "#081422", borderRadius: 12, padding: "16px 20px", marginBottom: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                   <span style={{ color: "#8899AA" }}>Viewing fee</span>
-                  <span style={{ fontWeight: 700 }}>${prop.viewingFee}.00</span>
+                  <span style={{ fontWeight: 700, textDecoration: firstTime ? "line-through" : "none", color: firstTime ? "#8899AA" : "#F0F4F8" }}>${prop.viewingFee}.00</span>
                 </div>
+                {firstTime && (
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ color: "#F4A228", fontWeight: 600 }}>First-time discount</span>
+                    <span style={{ color: "#22C55E", fontWeight: 700 }}>-${prop.viewingFee}.00</span>
+                  </div>
+                )}
                 <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #1E3A5F", paddingTop: 10, marginTop: 4 }}>
                   <span style={{ color: "#8899AA" }}>Total due</span>
-                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#F4A228", fontWeight: 700 }}>${prop.viewingFee}.00 USD</span>
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#F4A228", fontWeight: 700 }}>
+                    {firstTime ? "FREE" : `$${prop.viewingFee}.00 USD`}
+                  </span>
                 </div>
               </div>
 
-              <label style={{ fontSize: 12, color: "#8899AA", display: "block", marginBottom: 8 }}>Payment Method</label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
-                {[["📱", "EcoCash"], ["💰", "InnBucks"], ["💳", "Card"]].map(([icon, m]) => (
-                  <div key={m} onClick={() => setPayMethod(m)}
-                    style={{ background: payMethod === m ? "rgba(244,162,40,0.15)" : "#081422", border: `2px solid ${payMethod === m ? "#F4A228" : "#1E3A5F"}`, borderRadius: 10, padding: "12px 8px", textAlign: "center", cursor: "pointer", transition: "all 0.2s" }}>
-                    <div style={{ fontSize: 22 }}>{icon}</div>
-                    <div style={{ fontSize: 12, color: payMethod === m ? "#F4A228" : "#8899AA", fontWeight: 600, marginTop: 4 }}>{m}</div>
+              {!firstTime && (
+                <>
+                  <label style={{ fontSize: 12, color: "#8899AA", display: "block", marginBottom: 8 }}>Payment Method</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+                    {[["📱", "EcoCash"], ["💰", "InnBucks"], ["💳", "Card"]].map(([icon, m]) => (
+                      <div key={m} onClick={() => setPayMethod(m)}
+                        style={{ background: payMethod === m ? "rgba(244,162,40,0.15)" : "#081422", border: `2px solid ${payMethod === m ? "#F4A228" : "#1E3A5F"}`, borderRadius: 10, padding: "12px 8px", textAlign: "center", cursor: "pointer", transition: "all 0.2s" }}>
+                        <div style={{ fontSize: 22 }}>{icon}</div>
+                        <div style={{ fontSize: 12, color: payMethod === m ? "#F4A228" : "#8899AA", fontWeight: 600, marginTop: 4 }}>{m}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-
-              {payMethod === "EcoCash" && <div style={{ background: "#081422", borderRadius: 8, padding: "12px", marginBottom: 16, fontSize: 13, color: "#8899AA" }}>📱 Dial *151# and pay to <strong style={{ color: "#F4A228" }}>RentEasy *151*2*1#</strong></div>}
-              {payMethod === "InnBucks" && <div style={{ background: "#081422", borderRadius: 8, padding: "12px", marginBottom: 16, fontSize: 13, color: "#8899AA" }}>💰 Send payment to <strong style={{ color: "#F4A228" }}>RentEasy Zimbabwe</strong> on InnBucks</div>}
-              {payMethod === "Card" && (
-                <div style={{ marginBottom: 16 }}>
-                  <input placeholder="Card number" style={{ marginBottom: 10 }} />
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <input placeholder="MM / YY" />
-                    <input placeholder="CVV" />
-                  </div>
-                </div>
+                  {payMethod === "EcoCash" && <div style={{ background: "#081422", borderRadius: 8, padding: "12px", marginBottom: 16, fontSize: 13, color: "#8899AA" }}>📱 Dial *151# and pay to <strong style={{ color: "#F4A228" }}>RentEasy *151*2*1#</strong></div>}
+                  {payMethod === "InnBucks" && <div style={{ background: "#081422", borderRadius: 8, padding: "12px", marginBottom: 16, fontSize: 13, color: "#8899AA" }}>💰 Send payment to <strong style={{ color: "#F4A228" }}>RentEasy Zimbabwe</strong> on InnBucks</div>}
+                  {payMethod === "Card" && (
+                    <div style={{ marginBottom: 16 }}>
+                      <input placeholder="Card number" style={{ marginBottom: 10 }} />
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <input placeholder="MM / YY" />
+                        <input placeholder="CVV" />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <div style={{ display: "flex", gap: 12 }}>
                 <button className="btn-primary" style={{ flex: 1, padding: "13px" }} onClick={handlePayViewing}>
-                  Confirm Payment ${prop.viewingFee}
+                  {firstTime ? "🔓 Unlock for FREE" : `Confirm Payment $${prop.viewingFee}`}
                 </button>
                 <button className="btn-ghost" onClick={() => setPayModal(false)}>Cancel</button>
               </div>
-              <p style={{ color: "#4a6070", fontSize: 11, textAlign: "center", marginTop: 12 }}>🔒 Secure payment · Contact unlocked instantly · No refunds</p>
+              <p style={{ color: "#4a6070", fontSize: 11, textAlign: "center", marginTop: 12 }}>
+                {firstTime ? "🎉 First-time users unlock one contact for free" : "🔒 Secure payment · Contact unlocked instantly · No refunds"}
+              </p>
             </div>
           </div>
         )}
@@ -516,7 +692,6 @@ function App() {
           <button className="btn-primary" onClick={() => setListingModal(true)}>+ List New Property</button>
         </div>
 
-        {/* Stats */}
         <div className="fade-up-1" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 32 }}>
           {[["📋", landlordListings.length || "0", "Listed"], ["👁️", "24", "Views this week"], ["📩", "5", "View requests"], ["💵", `$${landlordListings.length * 5 + 45}`, "Fees received"]].map(([icon, val, lbl]) => (
             <div key={lbl} className="stat-card">
@@ -527,7 +702,6 @@ function App() {
           ))}
         </div>
 
-        {/* Listings */}
         <div className="fade-up-2">
           <h2 style={{ color: "#F0F4F8", fontWeight: 700, marginBottom: 16, fontSize: 18 }}>Your Listings</h2>
           {landlordListings.length === 0 ? (
@@ -541,10 +715,13 @@ function App() {
               {landlordListings.map((l, i) => (
                 <div key={i} style={{ background: "#112236", border: "1px solid #1E3A5F", borderRadius: 14, padding: "16px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
                   <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                    <span style={{ fontSize: 32 }}>🏠</span>
+                    {l.photos && l.photos.length > 0
+                      ? <img src={l.photos[0]} alt={l.title} style={{ width: 52, height: 52, borderRadius: 10, objectFit: "cover" }} />
+                      : <span style={{ fontSize: 32 }}>🏠</span>}
                     <div>
                       <div style={{ fontWeight: 700 }}>{l.title}</div>
                       <div style={{ color: "#8899AA", fontSize: 13 }}>📍 {l.location} · {l.type} · ${l.price}/mo</div>
+                      {l.photos && l.photos.length > 0 && <div style={{ color: "#2DD4BF", fontSize: 12, marginTop: 2 }}>📷 {l.photos.length} photo{l.photos.length > 1 ? "s" : ""}</div>}
                     </div>
                   </div>
                   <span className="badge" style={{ background: "#22C55E", color: "#fff" }}>✓ Active</span>
@@ -554,7 +731,6 @@ function App() {
           )}
         </div>
 
-        {/* Viewing Requests */}
         <div className="fade-up-3" style={{ marginTop: 32, background: "#081422", border: "1px solid #1E3A5F", borderRadius: 16, padding: "22px 24px" }}>
           <h3 style={{ color: "#2DD4BF", marginBottom: 16, fontWeight: 700 }}>📬 Viewing Requests <span className="badge" style={{ background: "#F4A228", color: "#0D1B2A", marginLeft: 8 }}>5 pending</span></h3>
           {[
@@ -577,10 +753,9 @@ function App() {
         </div>
       </div>
 
-      {/* Listing Modal */}
       {listingModal && (
         <div className="modal-overlay">
-          <div className="modal-box">
+          <div className="modal-box" style={{ maxHeight: "90vh", overflowY: "auto" }}>
             <h3 style={{ fontFamily: "'Playfair Display', serif", color: "#F4A228", fontSize: 22, marginBottom: 20 }}>📋 List a New Property</h3>
             <div style={{ display: "grid", gap: 14 }}>
               {[["Property Title *", "title", "e.g. Modern 3-Bedroom House"], ["Location *", "location", "e.g. Borrowdale, Harare"], ["Monthly Rent (USD) *", "price", "e.g. 750"], ["Bedrooms", "bedrooms", "e.g. 3"], ["Bathrooms", "bathrooms", "e.g. 2"]].map(([lbl, field, ph]) => (
@@ -609,10 +784,11 @@ function App() {
                 <label style={{ fontSize: 12, color: "#8899AA", display: "block", marginBottom: 5 }}>Amenities (comma-separated)</label>
                 <input placeholder="e.g. Borehole, Parking, Security, Garden" value={newListing.amenities} onChange={e => setNewListing(p => ({ ...p, amenities: e.target.value }))} />
               </div>
+              <PhotoUploader photos={newListingPhotos} setPhotos={setNewListingPhotos} />
             </div>
             <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
               <button className="btn-primary" style={{ flex: 1, padding: "13px" }} onClick={handleListingSubmit}>Submit Listing ✓</button>
-              <button className="btn-ghost" onClick={() => setListingModal(false)}>Cancel</button>
+              <button className="btn-ghost" onClick={() => { setListingModal(false); setNewListingPhotos([]); }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -632,7 +808,6 @@ function Nav({ page, role, goTo, saved, mobileMenuOpen, setMobileMenuOpen }) {
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: "#F4A228", lineHeight: 1 }}>RentEasy</div>
         <div style={{ fontSize: 10, color: "#2DD4BF", letterSpacing: 3, fontWeight: 600 }}>ZIMBABWE</div>
       </div>
-      {/* Desktop nav */}
       <div className="hide-mobile" style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <NavBtn active={page === "listings"} onClick={() => goTo("listings", "tenant")}>Browse</NavBtn>
         <NavBtn active={page === "saved"} onClick={() => goTo("saved", "tenant")}>
@@ -640,7 +815,6 @@ function Nav({ page, role, goTo, saved, mobileMenuOpen, setMobileMenuOpen }) {
         </NavBtn>
         <NavBtn active={page === "landlord"} onClick={() => goTo("landlord", "landlord")}>Landlord</NavBtn>
       </div>
-      {/* Mobile burger */}
       <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         style={{ display: "none", background: "none", border: "none", color: "#F4A228", fontSize: 26, cursor: "pointer" }}
         className="show-mobile">☰</button>
@@ -659,8 +833,19 @@ function NavBtn({ active, onClick, children }) {
 function PropertyCard({ property: p, saved, onSave, onClick }) {
   return (
     <div className="property-card" style={{ background: "#112236", border: "1px solid #1E3A5F", borderRadius: 16, overflow: "hidden" }}>
-      <div style={{ background: "linear-gradient(135deg, #1a3a5c, #0f2a45)", height: 110, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-        <span style={{ fontSize: 56 }}>{p.emoji}</span>
+      <div style={{ height: 110, position: "relative", overflow: "hidden" }}>
+        {p.photos && p.photos.length > 0 ? (
+          <>
+            <img src={p.photos[0]} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            {p.photos.length > 1 && (
+              <span style={{ position: "absolute", bottom: 6, right: 8, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 12 }}>📷 {p.photos.length}</span>
+            )}
+          </>
+        ) : (
+          <div style={{ background: "linear-gradient(135deg, #1a3a5c, #0f2a45)", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 56 }}>{p.emoji}</span>
+          </div>
+        )}
         <span className="badge" style={{ position: "absolute", top: 10, right: 10, background: p.available ? "#22C55E" : "#6B7280", color: "#fff" }}>
           {p.available ? "Available" : "Taken"}
         </span>
