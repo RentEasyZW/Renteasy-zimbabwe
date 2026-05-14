@@ -22,6 +22,12 @@
     .btn-outline:hover { background: rgba(244,162,40,0.08); }
     .btn-ghost { background: transparent; color: #8899AA; border: 1.5px solid #1E3A5F; border-radius: 10px; padding: 9px 18px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 14px; cursor: pointer; transition: border-color 0.2s; }
     .btn-ghost:hover { border-color: #8899AA; color: #F0F4F8; }
+    .btn-danger { background: linear-gradient(135deg, #EF4444, #dc2626); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: opacity 0.2s; }
+    .btn-danger:hover { opacity: 0.85; }
+    .btn-warning { background: linear-gradient(135deg, #F59E0B, #d97706); color: #0D1B2A; border: none; border-radius: 10px; padding: 9px 18px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: opacity 0.2s; }
+    .btn-warning:hover { opacity: 0.85; }
+    .btn-success { background: linear-gradient(135deg, #22C55E, #16a34a); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: opacity 0.2s; }
+    .btn-success:hover { opacity: 0.85; }
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
     .tag { display: inline-block; background: #1E3A5F; color: #2DD4BF; border-radius: 6px; padding: 4px 10px; font-size: 12px; margin: 3px 4px 3px 0; }
     .section-title { font-family: 'Playfair Display', serif; font-size: 28px; color: #F4A228; font-weight: 800; margin-bottom: 4px; }
@@ -40,6 +46,12 @@
     .fade-up-4 { animation: fadeUp 0.5s 0.4s ease both; }
     @media (max-width: 640px) { .hide-mobile { display: none !important; } .show-mobile { display: block !important; } .modal-box { padding: 24px 18px; } }
     @media (min-width: 641px) { .show-mobile { display: none !important; } }
+    .admin-row { background: #112236; border: 1px solid #1E3A5F; border-radius: 14px; padding: 16px 20px; transition: border-color 0.2s; }
+    .admin-row:hover { border-color: #2E5A8F; }
+    .admin-row.hidden-listing { opacity: 0.5; border-style: dashed; }
+    .admin-row.pending-listing { border-color: #F59E0B; border-left: 4px solid #F59E0B; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; }
   </style>
 </head>
 <body>
@@ -51,6 +63,42 @@
     const IMAGEKIT_URL_ENDPOINT = "https://ik.imagekit.io/6hlxcszeo";
     const ECOCASH_NUMBER        = "0783464169";
     const ECOCASH_NAME          = "RentEasy Zimbabwe";
+    const ADMIN_PASSWORD        = "RentEasy2026!";
+
+    const INITIAL_PROPERTIES = [
+      { id:1, title:"Modern 3-Bedroom House", location:"Borrowdale, Harare", city:"Harare", price:850, type:"House", bedrooms:3, bathrooms:2,
+        description:"Spacious modern home with garden, parking and borehole. Quiet neighbourhood close to schools and shops. Recently renovated kitchen and bathrooms.",
+        landlord:{ name:"Mr. Chikwanda", initials:"MC", phone:"+263 77 234 5678", email:"chikwanda@gmail.com", rating:4.8, properties:3 },
+        emoji:"🏡", status:"active", viewingFee:10, photos:[], amenities:["Borehole","Garden","2x Parking","Security Gate","Prepaid ZESA"], posted:"2 days ago", isSample:true },
+      { id:2, title:"Cozy 2-Bedroom Flat", location:"Avondale, Harare", city:"Harare", price:450, type:"Flat", bedrooms:2, bathrooms:1,
+        description:"Well-maintained flat on 2nd floor. ZESA prepaid, city water, communal garden. Walking distance to Avondale shops and restaurants.",
+        landlord:{ name:"Mrs. Moyo", initials:"MM", phone:"+263 71 345 6789", email:"moyorent@gmail.com", rating:4.5, properties:5 },
+        emoji:"🏠", status:"active", viewingFee:5, photos:[], amenities:["City Water","Prepaid ZESA","Parking","Security Guard"], posted:"5 days ago", isSample:true },
+      { id:3, title:"Executive 4-Bedroom Home", location:"Highlands, Harare", city:"Harare", price:1400, type:"House", bedrooms:4, bathrooms:3,
+        description:"Luxury executive home with pool, double garage, staff quarters and fully fitted kitchen. Ideal for expats and corporate tenants.",
+        landlord:{ name:"Tatenda Properties", initials:"TP", phone:"+263 77 456 7890", email:"tatenda.props@gmail.com", rating:5.0, properties:8 },
+        emoji:"🏰", status:"active", viewingFee:20, photos:[], amenities:["Pool","Double Garage","Staff Quarters","Alarm System","Borehole","Electric Fence"], posted:"1 day ago", isSample:true },
+      { id:4, title:"1-Bedroom Studio Apartment", location:"Belgravia, Harare", city:"Harare", price:280, type:"Studio", bedrooms:1, bathrooms:1,
+        description:"Compact and affordable studio apartment. Perfect for a single professional. Secure complex with 24/7 guard and communal laundry.",
+        landlord:{ name:"Mr. Ncube", initials:"MN", phone:"+263 73 567 8901", email:"ncube.rentals@gmail.com", rating:4.2, properties:2 },
+        emoji:"🏢", status:"active", viewingFee:5, photos:[], amenities:["24/7 Security","Parking","Prepaid ZESA","Communal Laundry"], posted:"1 week ago", isSample:true },
+      { id:5, title:"3-Bedroom Townhouse", location:"Waterfalls, Harare", city:"Harare", price:600, type:"Townhouse", bedrooms:3, bathrooms:2,
+        description:"Beautiful townhouse in a secure complex. Small garden, fitted kitchen, tiled throughout. Great for a family.",
+        landlord:{ name:"Grace Rentals", initials:"GR", phone:"+263 77 678 9012", email:"grace.rentals@gmail.com", rating:4.6, properties:4 },
+        emoji:"🏘️", status:"active", viewingFee:8, photos:[], amenities:["Garden","Borehole","Electric Fence","Parking"], posted:"3 days ago", isSample:true },
+      { id:6, title:"2-Bedroom House", location:"Suburbs, Bulawayo", city:"Bulawayo", price:320, type:"House", bedrooms:2, bathrooms:1,
+        description:"Affordable and well-located house near Bulawayo CBD. Ideal for a small family. Good road access and quiet street.",
+        landlord:{ name:"Mr. Dube", initials:"MD", phone:"+263 71 789 0123", email:"dube.rentals@gmail.com", rating:4.3, properties:1 },
+        emoji:"🏠", status:"active", viewingFee:5, photos:[], amenities:["City Water","Parking","Prepaid ZESA"], posted:"4 days ago", isSample:true },
+      { id:7, title:"Furnished 2-Bedroom Flat", location:"Greendale, Harare", city:"Harare", price:550, type:"Flat", bedrooms:2, bathrooms:1,
+        description:"Fully furnished flat ready to move in. Includes beds, sofas, fridge and washing machine. Ideal for professionals relocating.",
+        landlord:{ name:"Sunrise Properties", initials:"SP", phone:"+263 77 890 1234", email:"sunrise.zw@gmail.com", rating:4.7, properties:6 },
+        emoji:"🛋️", status:"active", viewingFee:8, photos:[], amenities:["Furnished","Borehole","DSTV Point","Parking","Security"], posted:"Today", isSample:true },
+      { id:8, title:"3-Bedroom House", location:"Hillside, Bulawayo", city:"Bulawayo", price:480, type:"House", bedrooms:3, bathrooms:2,
+        description:"Spacious family home in quiet Hillside neighbourhood. Large yard, borehole, and recently painted throughout.",
+        landlord:{ name:"Mrs. Ndlovu", initials:"MN", phone:"+263 71 901 2345", email:"ndlovu.props@gmail.com", rating:4.4, properties:3 },
+        emoji:"🏡", status:"active", viewingFee:8, photos:[], amenities:["Borehole","Large Yard","Parking","Prepaid ZESA"], posted:"6 days ago", isSample:true },
+    ];
 
     async function uploadToImageKit(file) {
       try {
@@ -63,41 +111,6 @@
         return data.url || URL.createObjectURL(file);
       } catch { return URL.createObjectURL(file); }
     }
-
-    const PROPERTIES = [
-      { id:1, title:"Modern 3-Bedroom House", location:"Borrowdale, Harare", city:"Harare", price:850, type:"House", bedrooms:3, bathrooms:2,
-        description:"Spacious modern home with garden, parking and borehole. Quiet neighbourhood close to schools and shops. Recently renovated kitchen and bathrooms.",
-        landlord:{ name:"Mr. Chikwanda", initials:"MC", phone:"+263 77 234 5678", email:"chikwanda@gmail.com", rating:4.8, properties:3 },
-        emoji:"🏡", available:true, viewingFee:10, photos:[], amenities:["Borehole","Garden","2x Parking","Security Gate","Prepaid ZESA"], posted:"2 days ago" },
-      { id:2, title:"Cozy 2-Bedroom Flat", location:"Avondale, Harare", city:"Harare", price:450, type:"Flat", bedrooms:2, bathrooms:1,
-        description:"Well-maintained flat on 2nd floor. ZESA prepaid, city water, communal garden. Walking distance to Avondale shops and restaurants.",
-        landlord:{ name:"Mrs. Moyo", initials:"MM", phone:"+263 71 345 6789", email:"moyorent@gmail.com", rating:4.5, properties:5 },
-        emoji:"🏠", available:true, viewingFee:5, photos:[], amenities:["City Water","Prepaid ZESA","Parking","Security Guard"], posted:"5 days ago" },
-      { id:3, title:"Executive 4-Bedroom Home", location:"Highlands, Harare", city:"Harare", price:1400, type:"House", bedrooms:4, bathrooms:3,
-        description:"Luxury executive home with pool, double garage, staff quarters and fully fitted kitchen. Ideal for expats and corporate tenants.",
-        landlord:{ name:"Tatenda Properties", initials:"TP", phone:"+263 77 456 7890", email:"tatenda.props@gmail.com", rating:5.0, properties:8 },
-        emoji:"🏰", available:true, viewingFee:20, photos:[], amenities:["Pool","Double Garage","Staff Quarters","Alarm System","Borehole","Electric Fence"], posted:"1 day ago" },
-      { id:4, title:"1-Bedroom Studio Apartment", location:"Belgravia, Harare", city:"Harare", price:280, type:"Studio", bedrooms:1, bathrooms:1,
-        description:"Compact and affordable studio apartment. Perfect for a single professional. Secure complex with 24/7 guard and communal laundry.",
-        landlord:{ name:"Mr. Ncube", initials:"MN", phone:"+263 73 567 8901", email:"ncube.rentals@gmail.com", rating:4.2, properties:2 },
-        emoji:"🏢", available:true, viewingFee:5, photos:[], amenities:["24/7 Security","Parking","Prepaid ZESA","Communal Laundry"], posted:"1 week ago" },
-      { id:5, title:"3-Bedroom Townhouse", location:"Waterfalls, Harare", city:"Harare", price:600, type:"Townhouse", bedrooms:3, bathrooms:2,
-        description:"Beautiful townhouse in a secure complex. Small garden, fitted kitchen, tiled throughout. Great for a family.",
-        landlord:{ name:"Grace Rentals", initials:"GR", phone:"+263 77 678 9012", email:"grace.rentals@gmail.com", rating:4.6, properties:4 },
-        emoji:"🏘️", available:false, viewingFee:8, photos:[], amenities:["Garden","Borehole","Electric Fence","Parking"], posted:"3 days ago" },
-      { id:6, title:"2-Bedroom House", location:"Suburbs, Bulawayo", city:"Bulawayo", price:320, type:"House", bedrooms:2, bathrooms:1,
-        description:"Affordable and well-located house near Bulawayo CBD. Ideal for a small family. Good road access and quiet street.",
-        landlord:{ name:"Mr. Dube", initials:"MD", phone:"+263 71 789 0123", email:"dube.rentals@gmail.com", rating:4.3, properties:1 },
-        emoji:"🏠", available:true, viewingFee:5, photos:[], amenities:["City Water","Parking","Prepaid ZESA"], posted:"4 days ago" },
-      { id:7, title:"Furnished 2-Bedroom Flat", location:"Greendale, Harare", city:"Harare", price:550, type:"Flat", bedrooms:2, bathrooms:1,
-        description:"Fully furnished flat ready to move in. Includes beds, sofas, fridge and washing machine. Ideal for professionals relocating.",
-        landlord:{ name:"Sunrise Properties", initials:"SP", phone:"+263 77 890 1234", email:"sunrise.zw@gmail.com", rating:4.7, properties:6 },
-        emoji:"🛋️", available:true, viewingFee:8, photos:[], amenities:["Furnished","Borehole","DSTV Point","Parking","Security"], posted:"Today" },
-      { id:8, title:"3-Bedroom House", location:"Hillside, Bulawayo", city:"Bulawayo", price:480, type:"House", bedrooms:3, bathrooms:2,
-        description:"Spacious family home in quiet Hillside neighbourhood. Large yard, borehole, and recently painted throughout.",
-        landlord:{ name:"Mrs. Ndlovu", initials:"MN", phone:"+263 71 901 2345", email:"ndlovu.props@gmail.com", rating:4.4, properties:3 },
-        emoji:"🏡", available:true, viewingFee:8, photos:[], amenities:["Borehole","Large Yard","Parking","Prepaid ZESA"], posted:"6 days ago" },
-    ];
 
     function PhotoUploader({ photos, setPhotos }) {
       const [uploading, setUploading] = useState(false);
@@ -243,6 +256,7 @@
               Saved {saved>0 && <span style={{ background:"#F4A228", color:"#0D1B2A", borderRadius:"50%", width:18, height:18, fontSize:10, fontWeight:800, display:"inline-flex", alignItems:"center", justifyContent:"center", marginLeft:4 }}>{saved}</span>}
             </NavBtn>
             <NavBtn active={page==="landlord"} onClick={() => goTo("landlord")}>Landlord</NavBtn>
+            <NavBtn active={page==="admin"} onClick={() => goTo("admin")}>🔐 Admin</NavBtn>
           </div>
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="show-mobile"
             style={{ background:"none", border:"none", color:"#F4A228", fontSize:26, cursor:"pointer" }}>☰</button>
@@ -251,6 +265,8 @@
     }
 
     function PropertyCard({ property:p, saved, onSave, onClick }) {
+      if (p.status === "hidden") return null;
+      if (p.status === "pending") return null;
       return (
         <div className="property-card" style={{ background:"#112236", border:"1px solid #1E3A5F", borderRadius:16, overflow:"hidden" }}>
           <div style={{ height:110, position:"relative", overflow:"hidden" }}>
@@ -264,7 +280,7 @@
                 <span style={{ fontSize:56 }}>{p.emoji}</span>
               </div>
             )}
-            <span className="badge" style={{ position:"absolute", top:10, right:10, background:p.available?"#22C55E":"#6B7280", color:"#fff" }}>{p.available?"Available":"Taken"}</span>
+            <span className="badge" style={{ position:"absolute", top:10, right:10, background:p.status==="active"?"#22C55E":"#6B7280", color:"#fff" }}>{p.status==="active"?"Available":"Taken"}</span>
             <button onClick={e=>{ e.stopPropagation(); onSave(); }} style={{ position:"absolute", top:8, left:10, background:"rgba(0,0,0,0.35)", border:"none", borderRadius:"50%", width:34, height:34, cursor:"pointer", fontSize:17 }}>
               {saved?"❤️":"🤍"}
             </button>
@@ -310,6 +326,277 @@
       );
     }
 
+    function AdminLogin({ onLogin }) {
+      const [pw, setPw] = useState("");
+      const [err, setErr] = useState(false);
+      const attempt = () => {
+        if (pw === ADMIN_PASSWORD) { onLogin(); }
+        else { setErr(true); setTimeout(()=>setErr(false),2500); }
+      };
+      return (
+        <div style={{ minHeight:"100vh", background:"#0D1B2A", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+          <div style={{ background:"#112236", border:"2px solid #F4A228", borderRadius:20, padding:"40px 36px", width:"100%", maxWidth:400, textAlign:"center" }}>
+            <div style={{ fontSize:48, marginBottom:12 }}>🔐</div>
+            <h2 style={{ fontFamily:"'Playfair Display',serif", color:"#F4A228", fontSize:26, marginBottom:6 }}>Admin Panel</h2>
+            <p style={{ color:"#8899AA", fontSize:14, marginBottom:28 }}>RentEasy Zimbabwe · Staff Only</p>
+            <div style={{ marginBottom:16 }}>
+              <input type="password" placeholder="Enter admin password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()}
+                style={{ border: err?"1.5px solid #EF4444":"1.5px solid #1E3A5F", textAlign:"center", fontSize:16, letterSpacing:3 }} />
+              {err && <p style={{ color:"#EF4444", fontSize:13, marginTop:8 }}>❌ Incorrect password. Try again.</p>}
+            </div>
+            <button className="btn-primary" style={{ width:"100%", padding:"13px", fontSize:15 }} onClick={attempt}>🔓 Login to Admin Panel</button>
+            <p style={{ color:"#4a6070", fontSize:11, marginTop:16 }}>This area is restricted to RentEasy administrators only.</p>
+          </div>
+        </div>
+      );
+    }
+
+    function EditModal({ prop, onSave, onClose }) {
+      const [form, setForm] = useState({
+        title: prop.title, location: prop.location, city: prop.city, price: prop.price,
+        type: prop.type, bedrooms: prop.bedrooms, bathrooms: prop.bathrooms,
+        description: prop.description, viewingFee: prop.viewingFee,
+        amenities: Array.isArray(prop.amenities) ? prop.amenities.join(", ") : prop.amenities,
+        landlordName: prop.landlord.name, landlordPhone: prop.landlord.phone, landlordEmail: prop.landlord.email,
+      });
+      const update = (k,v) => setForm(f=>({...f,[k]:v}));
+      return (
+        <div className="modal-overlay">
+          <div className="modal-box" style={{ maxWidth:540 }}>
+            <h3 style={{ fontFamily:"'Playfair Display',serif", color:"#F4A228", fontSize:20, marginBottom:20 }}>✏️ Edit Listing</h3>
+            <div style={{ display:"grid", gap:14 }}>
+              {[["Property Title","title"],["Location","location"],["Monthly Rent (USD)","price"],["Bedrooms","bedrooms"],["Bathrooms","bathrooms"],["Viewing Fee (USD)","viewingFee"]].map(([lbl,k])=>(
+                <div key={k}>
+                  <label style={{ fontSize:12, color:"#8899AA", display:"block", marginBottom:5 }}>{lbl}</label>
+                  <input value={form[k]} onChange={e=>update(k,e.target.value)}/>
+                </div>
+              ))}
+              <div>
+                <label style={{ fontSize:12, color:"#8899AA", display:"block", marginBottom:5 }}>City</label>
+                <select value={form.city} onChange={e=>update("city",e.target.value)}>
+                  {["Harare","Bulawayo","Mutare","Gweru","Masvingo"].map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:12, color:"#8899AA", display:"block", marginBottom:5 }}>Property Type</label>
+                <select value={form.type} onChange={e=>update("type",e.target.value)}>
+                  {["House","Flat","Townhouse","Studio","Commercial"].map(t=><option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:12, color:"#8899AA", display:"block", marginBottom:5 }}>Description</label>
+                <textarea rows={3} value={form.description} onChange={e=>update("description",e.target.value)}/>
+              </div>
+              <div>
+                <label style={{ fontSize:12, color:"#8899AA", display:"block", marginBottom:5 }}>Amenities (comma-separated)</label>
+                <input value={form.amenities} onChange={e=>update("amenities",e.target.value)}/>
+              </div>
+              <div style={{ borderTop:"1px solid #1E3A5F", paddingTop:14 }}>
+                <p style={{ color:"#2DD4BF", fontSize:13, fontWeight:700, marginBottom:12 }}>👤 Landlord Details</p>
+                {[["Landlord Name","landlordName"],["Phone","landlordPhone"],["Email","landlordEmail"]].map(([lbl,k])=>(
+                  <div key={k} style={{ marginBottom:10 }}>
+                    <label style={{ fontSize:12, color:"#8899AA", display:"block", marginBottom:5 }}>{lbl}</label>
+                    <input value={form[k]} onChange={e=>update(k,e.target.value)}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:12, marginTop:24 }}>
+              <button className="btn-primary" style={{ flex:1, padding:"13px" }} onClick={()=>onSave(form)}>💾 Save Changes</button>
+              <button className="btn-ghost" onClick={onClose}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ConfirmDialog({ message, onConfirm, onCancel, dangerous }) {
+      return (
+        <div className="confirm-overlay">
+          <div style={{ background:"#112236", border:`2px solid ${dangerous?"#EF4444":"#F4A228"}`, borderRadius:16, padding:"32px 28px", maxWidth:380, width:"100%", textAlign:"center" }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>{dangerous?"⚠️":"❓"}</div>
+            <p style={{ color:"#F0F4F8", fontSize:16, fontWeight:600, marginBottom:24, lineHeight:1.5 }}>{message}</p>
+            <div style={{ display:"flex", gap:12, justifyContent:"center" }}>
+              <button className={dangerous?"btn-danger":"btn-primary"} style={{ padding:"11px 28px" }} onClick={onConfirm}>{dangerous?"Yes, Delete":"Confirm"}</button>
+              <button className="btn-ghost" onClick={onCancel}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function AdminPanel({ properties, setProperties, notify, goTo }) {
+      const [adminLoggedIn, setAdminLoggedIn] = useState(false);
+      const [filterStatus, setFilterStatus]   = useState("all");
+      const [editTarget, setEditTarget]       = useState(null);
+      const [confirmData, setConfirmData]     = useState(null);
+      const [search, setSearch]               = useState("");
+
+      if (!adminLoggedIn) return <AdminLogin onLogin={()=>setAdminLoggedIn(true)}/>;
+
+      const counts = {
+        all: properties.length,
+        active: properties.filter(p=>p.status==="active").length,
+        hidden: properties.filter(p=>p.status==="hidden").length,
+        pending: properties.filter(p=>p.status==="pending").length,
+        sample: properties.filter(p=>p.isSample).length,
+      };
+
+      const displayed = properties.filter(p=>{
+        const matchStatus = filterStatus==="all" || p.status===filterStatus || (filterStatus==="sample"&&p.isSample);
+        const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.location.toLowerCase().includes(search.toLowerCase());
+        return matchStatus && matchSearch;
+      });
+
+      const updateStatus = (id, newStatus) => {
+        setProperties(prev=>prev.map(p=>p.id===id?{...p,status:newStatus}:p));
+        notify(`Listing ${newStatus==="active"?"approved & visible":newStatus==="hidden"?"hidden from public":"updated"}.`);
+      };
+
+      const deleteProp = (id) => {
+        setProperties(prev=>prev.filter(p=>p.id!==id));
+        notify("Listing deleted permanently.");
+        setConfirmData(null);
+      };
+
+      const deleteAllSamples = () => {
+        setProperties(prev=>prev.filter(p=>!p.isSample));
+        notify(`All ${counts.sample} sample listings removed.`);
+        setConfirmData(null);
+      };
+
+      const saveEdit = (id, form) => {
+        setProperties(prev=>prev.map(p=>p.id===id?{
+          ...p, title:form.title, location:form.location, city:form.city, price:Number(form.price),
+          type:form.type, bedrooms:Number(form.bedrooms), bathrooms:Number(form.bathrooms),
+          description:form.description, viewingFee:Number(form.viewingFee),
+          amenities:form.amenities.split(",").map(a=>a.trim()).filter(Boolean),
+          landlord:{ ...p.landlord, name:form.landlordName, phone:form.landlordPhone, email:form.landlordEmail,
+            initials:form.landlordName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase() },
+        }:p));
+        notify("Listing updated successfully.");
+        setEditTarget(null);
+      };
+
+      const statusColor = { active:"#22C55E", hidden:"#6B7280", pending:"#F59E0B" };
+      const statusLabel = { active:"Active", hidden:"Hidden", pending:"Pending" };
+
+      return (
+        <div style={{ minHeight:"100vh", background:"#0D1B2A" }}>
+          <Nav page="admin" goTo={goTo} saved={0} mobileMenuOpen={false} setMobileMenuOpen={()=>{}}/>
+          <div style={{ padding:"32px 24px", maxWidth:1000, margin:"0 auto" }}>
+            <div className="fade-up" style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28, flexWrap:"wrap", gap:16 }}>
+              <div>
+                <h1 className="section-title">🔐 Admin Panel</h1>
+                <p style={{ color:"#8899AA" }}>Manage all listings on RentEasy Zimbabwe</p>
+              </div>
+              <button className="btn-danger" style={{ padding:"10px 20px" }} onClick={()=>setAdminLoggedIn(false)}>🚪 Logout</button>
+            </div>
+            <div className="fade-up-1" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:14, marginBottom:24 }}>
+              {[["📋",counts.all,"Total"],["✅",counts.active,"Active"],["👁️‍🗨️",counts.hidden,"Hidden"],["⏳",counts.pending,"Pending"],["🧪",counts.sample,"Sample"]].map(([icon,val,lbl])=>(
+                <div key={lbl} className="stat-card" style={{ cursor:"pointer", border:filterStatus===lbl.toLowerCase()?"1px solid #F4A228":"1px solid #1E3A5F" }}
+                  onClick={()=>setFilterStatus(lbl.toLowerCase()==="total"?"all":lbl.toLowerCase())}>
+                  <div style={{ fontSize:24, marginBottom:4 }}>{icon}</div>
+                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize:22, color:"#F4A228", fontWeight:700 }}>{val}</div>
+                  <div style={{ fontSize:12, color:"#8899AA" }}>{lbl}</div>
+                </div>
+              ))}
+            </div>
+            {counts.sample > 0 && (
+              <div className="fade-up-1" style={{ background:"rgba(239,68,68,0.08)", border:"1.5px solid rgba(239,68,68,0.4)", borderRadius:14, padding:"16px 20px", marginBottom:24, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <span style={{ fontSize:26 }}>⚠️</span>
+                  <div>
+                    <p style={{ color:"#FCA5A5", fontWeight:700, margin:"0 0 2px" }}>{counts.sample} Sample Listings Are Live</p>
+                    <p style={{ color:"#8899AA", fontSize:13, margin:0 }}>These are dummy listings visible to the public. Remove them and replace with real properties.</p>
+                  </div>
+                </div>
+                <button className="btn-danger" onClick={()=>setConfirmData({ type:"deleteAll", msg:`Delete all ${counts.sample} sample listings permanently? This cannot be undone.` })}>
+                  🗑️ Remove All Samples
+                </button>
+              </div>
+            )}
+            <div className="fade-up-2" style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap" }}>
+              <div style={{ flex:1, minWidth:200 }}>
+                <input placeholder="🔍 Search listings..." value={search} onChange={e=>setSearch(e.target.value)}/>
+              </div>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                {[["All","all"],["Active","active"],["Hidden","hidden"],["Pending","pending"],["Samples","sample"]].map(([lbl,val])=>(
+                  <button key={val} onClick={()=>setFilterStatus(val)}
+                    style={{ background:filterStatus===val?"#F4A228":"transparent", color:filterStatus===val?"#0D1B2A":"#8899AA", border:`1.5px solid ${filterStatus===val?"#F4A228":"#1E3A5F"}`, borderRadius:8, padding:"8px 14px", cursor:"pointer", fontSize:13, fontWeight:filterStatus===val?700:500, fontFamily:"'DM Sans',sans-serif" }}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="fade-up-2" style={{ display:"grid", gap:12 }}>
+              {displayed.length === 0 && (
+                <div style={{ background:"#112236", border:"2px dashed #1E3A5F", borderRadius:16, padding:"48px 24px", textAlign:"center" }}>
+                  <div style={{ fontSize:40, marginBottom:12 }}>📭</div>
+                  <p style={{ color:"#8899AA" }}>No listings match your filter.</p>
+                </div>
+              )}
+              {displayed.map(p=>(
+                <div key={p.id} className={`admin-row ${p.status==="hidden"?"hidden-listing":""} ${p.status==="pending"?"pending-listing":""}`}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:14 }}>
+                    <div style={{ display:"flex", gap:14, alignItems:"center", flex:1, minWidth:200 }}>
+                      {p.photos&&p.photos.length>0 ? (
+                        <img src={p.photos[0]} alt="" style={{ width:52, height:52, borderRadius:10, objectFit:"cover", flexShrink:0 }}/>
+                      ) : (
+                        <div style={{ width:52, height:52, borderRadius:10, background:"#1a3a5c", display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, flexShrink:0 }}>{p.emoji}</div>
+                      )}
+                      <div>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:4 }}>
+                          <span style={{ fontWeight:700, color:"#F0F4F8", fontSize:15 }}>{p.title}</span>
+                          {p.isSample && <span className="badge" style={{ background:"rgba(239,68,68,0.2)", color:"#FCA5A5", border:"1px solid rgba(239,68,68,0.3)" }}>🧪 Sample</span>}
+                        </div>
+                        <div style={{ color:"#8899AA", fontSize:13 }}>📍 {p.location} · {p.type} · <span style={{ color:"#F4A228", fontWeight:700 }}>${p.price}/mo</span></div>
+                        <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:4 }}>
+                          <span className="status-dot" style={{ background:statusColor[p.status]||"#6B7280" }}></span>
+                          <span style={{ fontSize:12, color:statusColor[p.status]||"#6B7280", fontWeight:600 }}>{statusLabel[p.status]||p.status}</span>
+                          <span style={{ color:"#4a6070", fontSize:12, marginLeft:4 }}>· {p.posted}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+                      {p.status !== "active" && (
+                        <button className="btn-success" onClick={()=>updateStatus(p.id,"active")}>✅ Approve</button>
+                      )}
+                      {p.status === "active" && (
+                        <button className="btn-warning" onClick={()=>updateStatus(p.id,"hidden")}>🙈 Hide</button>
+                      )}
+                      {p.status === "hidden" && (
+                        <button className="btn-teal" style={{ padding:"9px 18px", fontSize:13 }} onClick={()=>updateStatus(p.id,"active")}>👁️ Show</button>
+                      )}
+                      <button className="btn-ghost" style={{ padding:"9px 14px", fontSize:13 }} onClick={()=>setEditTarget(p)}>✏️ Edit</button>
+                      <button className="btn-danger" onClick={()=>setConfirmData({ type:"single", id:p.id, msg:`Delete "${p.title}" permanently? This cannot be undone.` })}>🗑️ Delete</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="fade-up-3" style={{ marginTop:32, background:"#081422", border:"1px solid #1E3A5F", borderRadius:14, padding:"20px 24px" }}>
+              <h3 style={{ color:"#2DD4BF", fontWeight:700, marginBottom:12, fontSize:14 }}>📖 Admin Guide</h3>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:12 }}>
+                {[["✅ Approve","Makes a listing visible to the public on the browse page."],["🙈 Hide","Removes a listing from public view without deleting it."],["✏️ Edit","Update any details: price, photos, contact info, amenities."],["🗑️ Delete","Permanently removes a listing. Cannot be undone."],["🧪 Sample","Dummy listings pre-loaded into the site. Remove these first!"],["⏳ Pending","New listings submitted by landlords awaiting your approval."]].map(([lbl,desc])=>(
+                  <div key={lbl} style={{ background:"#112236", borderRadius:10, padding:"12px 14px" }}>
+                    <div style={{ fontWeight:700, color:"#F4A228", fontSize:13, marginBottom:4 }}>{lbl}</div>
+                    <div style={{ color:"#8899AA", fontSize:12, lineHeight:1.5 }}>{desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          {editTarget && <EditModal prop={editTarget} onSave={(form)=>saveEdit(editTarget.id,form)} onClose={()=>setEditTarget(null)}/>}
+          {confirmData && (
+            <ConfirmDialog message={confirmData.msg} dangerous={true}
+              onConfirm={()=>{ confirmData.type==="deleteAll"?deleteAllSamples():deleteProp(confirmData.id); }}
+              onCancel={()=>setConfirmData(null)}/>
+          )}
+        </div>
+      );
+    }
+
     function App() {
       const [page, setPage]                     = useState("home");
       const [selectedProperty, setSelectedProp] = useState(null);
@@ -322,7 +609,7 @@
       const [savedProperties, setSaved]         = useState([]);
       const [payModal, setPayModal]             = useState(false);
       const [listingModal, setListingModal]     = useState(false);
-      const [landlordListings, setLandlord]     = useState([]);
+      const [properties, setProperties]         = useState(INITIAL_PROPERTIES);
       const [notification, setNotif]            = useState(null);
       const [mobileMenuOpen, setMobileMenu]     = useState(false);
       const [newPhotos, setNewPhotos]           = useState([]);
@@ -331,7 +618,9 @@
       const notify = (msg, type="success") => { setNotif({ msg, type }); setTimeout(()=>setNotif(null),3500); };
       const goTo = (p) => { setPage(p); setMobileMenu(false); window.scrollTo(0,0); };
 
-      const filtered = PROPERTIES.filter(p => {
+      const visibleProperties = properties.filter(p => p.status === "active");
+
+      const filtered = visibleProperties.filter(p => {
         const s = searchTerm.toLowerCase();
         return (!s || p.title.toLowerCase().includes(s) || p.location.toLowerCase().includes(s) || p.city.toLowerCase().includes(s))
           && (filterType==="All" || p.type===filterType)
@@ -348,13 +637,21 @@
 
       const handleListingSubmit = () => {
         if (!newListing.title||!newListing.location||!newListing.price) { notify("Please fill in all required fields.","error"); return; }
-        setLandlord(prev => [...prev, { ...newListing, id:Date.now(), available:true, emoji:"🏠", posted:"Just now", viewingFee:5, photos:newPhotos,
-          landlord:{ name:"You", initials:"ME", phone:"Your phone", email:"Your email", rating:5.0, properties:prev.length+1 },
-          amenities:newListing.amenities.split(",").map(a=>a.trim()).filter(Boolean) }]);
+        const newProp = {
+          ...newListing, id:Date.now(), status:"pending", isSample:false, emoji:"🏠", posted:"Just now", viewingFee:5,
+          photos:newPhotos, price:Number(newListing.price), bedrooms:Number(newListing.bedrooms)||1, bathrooms:Number(newListing.bathrooms)||1,
+          landlord:{ name:"Pending Verification", initials:"PV", phone:"Hidden until approved", email:"Hidden until approved", rating:5.0, properties:1 },
+          amenities:newListing.amenities.split(",").map(a=>a.trim()).filter(Boolean)
+        };
+        setProperties(prev=>[...prev, newProp]);
         setListingModal(false); setNewPhotos([]);
         setNewListing({ title:"", location:"", city:"Harare", price:"", type:"House", bedrooms:"", bathrooms:"", description:"", amenities:"" });
-        notify("🎉 Property listed! Tenants can now find it.");
+        notify("🎉 Property submitted! It will appear once approved by admin.");
       };
+
+      if (page === "admin") return (
+        <AdminPanel properties={properties} setProperties={setProperties} notify={notify} goTo={goTo}/>
+      );
 
       if (page==="home") return (
         <div style={{ minHeight:"100vh", background:"#0D1B2A" }}>
@@ -398,13 +695,21 @@
               <h2 style={{ fontFamily:"'Playfair Display',serif", color:"#F0F4F8", fontSize:26 }}>Featured Properties</h2>
               <button className="btn-outline" onClick={() => goTo("listings")}>View All →</button>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:18 }}>
-              {PROPERTIES.slice(0,3).map(p => (
-                <PropertyCard key={p.id} property={p} saved={savedProperties.includes(p.id)}
-                  onSave={() => setSaved(prev=>prev.includes(p.id)?prev.filter(x=>x!==p.id):[...prev,p.id])}
-                  onClick={() => { setSelectedProp(p); goTo("detail"); }}/>
-              ))}
-            </div>
+            {visibleProperties.length === 0 ? (
+              <div style={{ background:"#112236", border:"2px dashed #1E3A5F", borderRadius:16, padding:"48px 24px", textAlign:"center" }}>
+                <div style={{ fontSize:48, marginBottom:12 }}>🏠</div>
+                <p style={{ color:"#8899AA" }}>No properties listed yet. Be the first to post a listing!</p>
+                <button className="btn-primary" style={{ marginTop:16 }} onClick={()=>goTo("landlord")}>List a Property</button>
+              </div>
+            ) : (
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:18 }}>
+                {visibleProperties.slice(0,3).map(p => (
+                  <PropertyCard key={p.id} property={p} saved={savedProperties.includes(p.id)}
+                    onSave={() => setSaved(prev=>prev.includes(p.id)?prev.filter(x=>x!==p.id):[...prev,p.id])}
+                    onClick={() => { setSelectedProp(p); goTo("detail"); }}/>
+                ))}
+              </div>
+            )}
           </div>
           <Footer goTo={goTo}/>
         </div>
@@ -465,7 +770,7 @@
       );
 
       if (page==="detail" && selectedProperty) {
-        const prop = selectedProperty;
+        const prop = properties.find(p=>p.id===selectedProperty.id) || selectedProperty;
         const unlocked = paidProperties.includes(prop.id);
         return (
           <div style={{ minHeight:"100vh", background:"#0D1B2A" }}>
@@ -477,7 +782,7 @@
                 <div style={{ position:"relative" }}>
                   <PhotoGallery photos={prop.photos} emoji={prop.emoji}/>
                   <div style={{ position:"absolute", top:16, right:16 }}>
-                    <span className="badge" style={{ background:prop.available?"#22C55E":"#6B7280", color:"#fff" }}>{prop.available?"✓ Available":"Taken"}</span>
+                    <span className="badge" style={{ background:prop.status==="active"?"#22C55E":"#6B7280", color:"#fff" }}>{prop.status==="active"?"✓ Available":"Taken"}</span>
                   </div>
                   <button onClick={() => setSaved(prev=>prev.includes(prop.id)?prev.filter(x=>x!==prop.id):[...prev,prop.id])}
                     style={{ position:"absolute", top:16, left:16, background:"rgba(0,0,0,0.4)", border:"none", borderRadius:"50%", width:38, height:38, cursor:"pointer", fontSize:20 }}>
@@ -505,7 +810,7 @@
                   <p style={{ color:"#CBD5E1", lineHeight:1.75, marginBottom:20 }}>{prop.description}</p>
                   <div style={{ marginBottom:24 }}>
                     <h3 style={{ color:"#2DD4BF", fontSize:14, fontWeight:700, marginBottom:10, textTransform:"uppercase", letterSpacing:1 }}>Amenities</h3>
-                    <div>{prop.amenities.map(a=><span key={a} className="tag">✓ {a}</span>)}</div>
+                    <div>{(Array.isArray(prop.amenities)?prop.amenities:[]).map(a=><span key={a} className="tag">✓ {a}</span>)}</div>
                   </div>
                   <div style={{ background:"#081422", border:"1px solid #1E3A5F", borderRadius:14, padding:"18px 20px", marginBottom:24 }}>
                     <h3 style={{ color:"#2DD4BF", fontSize:13, fontWeight:700, marginBottom:14, textTransform:"uppercase", letterSpacing:1 }}>Listed By</h3>
@@ -530,7 +835,7 @@
                       )}
                     </div>
                   </div>
-                  {prop.available && !unlocked && (
+                  {prop.status==="active" && !unlocked && (
                     <div style={{ background:"linear-gradient(135deg,#1a3a5c,#112236)", border:"2px solid #F4A228", borderRadius:16, padding:"24px", textAlign:"center" }}>
                       <h3 style={{ fontFamily:"'Playfair Display',serif", color:"#F4A228", fontSize:20, marginBottom:8 }}>Request a Viewing</h3>
                       <p style={{ color:"#8899AA", fontSize:14, marginBottom:12, lineHeight:1.6 }}>Pay a once-off viewing fee of <strong style={{ color:"#F4A228" }}>${prop.viewingFee} USD</strong> via EcoCash to instantly unlock the landlord's contact details.</p>
@@ -555,7 +860,7 @@
                       <div style={{ color:"#2DD4BF", fontSize:15, marginTop:6 }}>📧 {prop.landlord.email}</div>
                     </div>
                   )}
-                  {!prop.available && (
+                  {prop.status!=="active" && (
                     <div style={{ background:"#1a1a2e", border:"2px solid #6B7280", borderRadius:16, padding:"24px", textAlign:"center" }}>
                       <p style={{ color:"#8899AA" }}>This property is currently not available. Check back later or browse similar listings.</p>
                       <button className="btn-outline" style={{ marginTop:14 }} onClick={() => goTo("listings")}>Browse More →</button>
@@ -584,7 +889,7 @@
               </div>
             ) : (
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))", gap:22 }}>
-                {PROPERTIES.filter(p=>savedProperties.includes(p.id)).map(p => (
+                {visibleProperties.filter(p=>savedProperties.includes(p.id)).map(p => (
                   <PropertyCard key={p.id} property={p} saved={true}
                     onSave={() => setSaved(prev=>prev.filter(x=>x!==p.id))}
                     onClick={() => { setSelectedProp(p); goTo("detail"); }}/>
@@ -603,67 +908,22 @@
             <div className="fade-up" style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28, flexWrap:"wrap", gap:16 }}>
               <div>
                 <h1 className="section-title">Landlord Dashboard</h1>
-                <p style={{ color:"#8899AA" }}>Manage your property listings</p>
+                <p style={{ color:"#8899AA" }}>Submit your property listing for admin approval</p>
               </div>
               <button className="btn-primary" onClick={() => setListingModal(true)}>+ List New Property</button>
             </div>
-            <div className="fade-up-1" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:16, marginBottom:24 }}>
-              {[["📋",landlordListings.length||"0","Listed"],["👁️","24","Views this week"],["📩","5","View requests"],["💵",`$${landlordListings.length*5+45}`,"Fees received"]].map(([icon,val,lbl]) => (
-                <div key={lbl} className="stat-card">
-                  <div style={{ fontSize:30, marginBottom:6 }}>{icon}</div>
-                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize:24, color:"#F4A228", fontWeight:700 }}>{val}</div>
-                  <div style={{ fontSize:12, color:"#8899AA" }}>{lbl}</div>
-                </div>
-              ))}
-            </div>
-            <div className="fade-up-2" style={{ background:"linear-gradient(135deg,rgba(244,162,40,0.08),rgba(244,162,40,0.03))", border:"1.5px solid rgba(244,162,40,0.3)", borderRadius:14, padding:"16px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:14 }}>
+            <div className="fade-up-1" style={{ background:"linear-gradient(135deg,rgba(244,162,40,0.08),rgba(244,162,40,0.03))", border:"1.5px solid rgba(244,162,40,0.3)", borderRadius:14, padding:"16px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:14 }}>
               <span style={{ fontSize:28 }}>📱</span>
               <div>
                 <p style={{ color:"#F4A228", fontWeight:700, margin:"0 0 2px", fontSize:14 }}>Payments received on EcoCash {ECOCASH_NUMBER}</p>
                 <p style={{ color:"#8899AA", fontSize:12, margin:0 }}>Viewing fees are collected via EcoCash. Payouts processed within 24 hours.</p>
               </div>
             </div>
-            <div className="fade-up-2">
-              <h2 style={{ color:"#F0F4F8", fontWeight:700, marginBottom:16, fontSize:18 }}>Your Listings</h2>
-              {landlordListings.length===0 ? (
-                <div style={{ background:"#112236", border:"2px dashed #1E3A5F", borderRadius:16, padding:"48px 24px", textAlign:"center" }}>
-                  <div style={{ fontSize:40, marginBottom:12 }}>🏠</div>
-                  <p style={{ color:"#8899AA", marginBottom:20 }}>No properties listed yet. Add your first property to get started.</p>
-                  <button className="btn-primary" onClick={() => setListingModal(true)}>List Your First Property</button>
-                </div>
-              ) : (
-                <div style={{ display:"grid", gap:14 }}>
-                  {landlordListings.map((l,i) => (
-                    <div key={i} style={{ background:"#112236", border:"1px solid #1E3A5F", borderRadius:14, padding:"16px 22px", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
-                      <div style={{ display:"flex", gap:14, alignItems:"center" }}>
-                        {l.photos&&l.photos.length>0?<img src={l.photos[0]} alt={l.title} style={{ width:52, height:52, borderRadius:10, objectFit:"cover" }}/>:<span style={{ fontSize:32 }}>🏠</span>}
-                        <div>
-                          <div style={{ fontWeight:700 }}>{l.title}</div>
-                          <div style={{ color:"#8899AA", fontSize:13 }}>📍 {l.location} · {l.type} · ${l.price}/mo</div>
-                          {l.photos&&l.photos.length>0&&<div style={{ color:"#2DD4BF", fontSize:12, marginTop:2 }}>📷 {l.photos.length} photo{l.photos.length>1?"s":""}</div>}
-                        </div>
-                      </div>
-                      <span className="badge" style={{ background:"#22C55E", color:"#fff" }}>✓ Active</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="fade-up-3" style={{ marginTop:32, background:"#081422", border:"1px solid #1E3A5F", borderRadius:16, padding:"22px 24px" }}>
-              <h3 style={{ color:"#2DD4BF", marginBottom:16, fontWeight:700 }}>📬 Viewing Requests <span className="badge" style={{ background:"#F4A228", color:"#0D1B2A", marginLeft:8 }}>5 pending</span></h3>
-              {[{ tenant:"T. Mutasa", property:"3-Bed Borrowdale", time:"Today, 2:00 PM", fee:"$10", status:"Paid" },{ tenant:"R. Chikomo", property:"Studio Belgravia", time:"Tomorrow, 10:00 AM", fee:"$5", status:"Paid" },{ tenant:"N. Sibanda", property:"2-Bed Avondale", time:"Thu 9 Apr, 3:00 PM", fee:"$5", status:"Paid" }].map((r,i) => (
-                <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", borderTop:"1px solid #1E3A5F", paddingTop:14, marginTop:14, flexWrap:"wrap", gap:12 }}>
-                  <div>
-                    <div style={{ fontWeight:700 }}>{r.tenant}</div>
-                    <div style={{ color:"#8899AA", fontSize:13 }}>🏠 {r.property} · 🕐 {r.time}</div>
-                  </div>
-                  <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                    <span className="badge" style={{ background:"#22C55E", color:"#fff" }}>{r.fee} {r.status}</span>
-                    <button className="btn-primary" style={{ padding:"8px 16px", fontSize:13 }}>Confirm</button>
-                    <button className="btn-ghost" style={{ padding:"8px 14px", fontSize:13 }}>Decline</button>
-                  </div>
-                </div>
-              ))}
+            <div className="fade-up-2" style={{ background:"#112236", border:"2px dashed #1E3A5F", borderRadius:16, padding:"48px 24px", textAlign:"center" }}>
+              <div style={{ fontSize:40, marginBottom:12 }}>🏠</div>
+              <p style={{ color:"#8899AA", marginBottom:8 }}>Submit your property and it will go live once approved by the RentEasy admin.</p>
+              <p style={{ color:"#4a6070", fontSize:12, marginBottom:20 }}>Listings are reviewed within 24 hours.</p>
+              <button className="btn-primary" onClick={() => setListingModal(true)}>List Your Property</button>
             </div>
           </div>
           {listingModal && (
@@ -700,9 +960,10 @@
                   <PhotoUploader photos={newPhotos} setPhotos={setNewPhotos}/>
                 </div>
                 <div style={{ display:"flex", gap:12, marginTop:24 }}>
-                  <button className="btn-primary" style={{ flex:1, padding:"13px" }} onClick={handleListingSubmit}>Submit Listing ✓</button>
+                  <button className="btn-primary" style={{ flex:1, padding:"13px" }} onClick={handleListingSubmit}>Submit for Approval ✓</button>
                   <button className="btn-ghost" onClick={() => { setListingModal(false); setNewPhotos([]); }}>Cancel</button>
                 </div>
+                <p style={{ color:"#4a6070", fontSize:11, textAlign:"center", marginTop:10 }}>Your listing will be reviewed before going live.</p>
               </div>
             </div>
           )}
@@ -715,4 +976,4 @@
     ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
   </script>
 </body>
-</html>
+  </html>
