@@ -260,6 +260,19 @@
           </div>
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="show-mobile"
             style={{ background:"none", border:"none", color:"#F4A228", fontSize:26, cursor:"pointer" }}>☰</button>
+          {mobileMenuOpen && (
+            <div style={{ position:"fixed", inset:0, background:"rgba(13,27,42,0.97)", zIndex:150, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8 }}>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:24, color:"#F4A228", fontWeight:700, marginBottom:24 }}>RentEasy Zimbabwe</div>
+              {[["🏠 Home","home"],["🔍 Browse","listings"],["❤️ Saved","saved"],["🏘️ Landlord","landlord"],["🔐 Admin","admin"]].map(([lbl,pg])=>(
+                <button key={pg} onClick={()=>{ goTo(pg); setMobileMenuOpen(false); }}
+                  style={{ background:page===pg?"rgba(244,162,40,0.15)":"transparent", color:pg==="admin"?"#F4A228":page===pg?"#F4A228":"#F0F4F8", border:`1.5px solid ${page===pg||pg==="admin"?"rgba(244,162,40,0.4)":"#1E3A5F"}`, borderRadius:12, padding:"14px 48px", fontSize:17, fontFamily:"'DM Sans',sans-serif", fontWeight:pg==="admin"||page===pg?700:500, cursor:"pointer", width:240, textAlign:"center" }}>
+                  {lbl}
+                </button>
+              ))}
+              <button onClick={()=>setMobileMenuOpen(false)}
+                style={{ marginTop:24, background:"none", border:"1.5px solid #1E3A5F", color:"#8899AA", borderRadius:12, padding:"12px 48px", fontSize:15, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>✕ Close</button>
+            </div>
+          )}
         </nav>
       );
     }
@@ -976,4 +989,4 @@
     ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
   </script>
 </body>
-</html>
+  </html>
